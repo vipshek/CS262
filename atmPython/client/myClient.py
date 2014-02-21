@@ -7,9 +7,8 @@ Altered Feb. 20, 2014
 version = '\x01'
 
 import socket
-import myClientSend
+from myClientSend import *
 from myClientReceive import *
-from myServerSend import *
 import sys
 from struct import unpack
 
@@ -41,34 +40,34 @@ CONNECTED TO ATM SERVER - type the number of a function:
     netBuffer = raw_input('>> ')
     return netBuffer
 
-def processInput(netBuffer):
+def processInput(netBuffer, mySocket):
     #create
     if netBuffer == str(1):
-        myClientSend.create_request(mySocket)
+        create_request(mySocket)
         
     #delete
     elif netBuffer == str(2):
-        myClientSend.delete_request(mySocket)
+        delete_request(mySocket)
         
     #deposit
     elif netBuffer == str(3):
-        myClientSend.deposit_request(mySocket)
+        deposit_request(mySocket)
         
     #withdraw
     elif netBuffer == str(4):
-        myClientSend.withdraw_request(mySocket)
+        withdraw_request(mySocket)
         
     #balance
     elif netBuffer == str(5):
-        myClientSend.balance_request(mySocket)
+        balance_request(mySocket)
         
     #quit
     elif netBuffer == str(6):
-        myClientSend.end_session(mySocket)
+        end_session(mySocket)
         
     return
         
-def getResponse():
+def getResponse(mySocket):
     #wait for server responses...
     while True:
         try:
@@ -98,20 +97,20 @@ if __name__ == '__main__':
         print "ERROR: Usage 'python myClient.py <host> <port>'"
         sys.exit()
         
-        #get the address of the server
-        myHost = sys.argv[1]
-        myPort = sys.argv[2]
-        mySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            mySocket.connect ( ( myHost, int(myPort)) )
-        except:
-            print "ERROR: could not connect to " + myHost + ":" + myPort
-            sys.exit()
+    #get the address of the server
+    myHost = sys.argv[1]
+    myPort = sys.argv[2]
+    mySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        mySocket.connect ( ( myHost, int(myPort)) )
+    except:
+        print "ERROR: could not connect to " + myHost + ":" + myPort
+        sys.exit()
 
     while True:
         netBuffer = getInput()
         #menu selection and function priming
-        processInput(netBuffer)
-        getResponse()
+        processInput(netBuffer, mySocket)
+        getResponse(mySocket)
 
     mySocket.close()

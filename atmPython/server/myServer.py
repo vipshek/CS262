@@ -7,6 +7,7 @@ Restructured and re-factored by Jim Waldo, 2/17/2014
 '''
 
 import socket
+import struct
 import myServerReceive
 import myServerSend
 from myServerSend import unknown_opcode
@@ -41,7 +42,7 @@ def handler(conn,lock, myData):
         #if we receive a message...
         if len(netbuffer) >= 6:
             #unpack it...
-            header = netbuffer.unpack('!cIc',netbuffer[0:6])
+            header = struct.unpack('!cIc',netbuffer[0:6])
             #only allow correct version numbers and buffers that are of the appropriate length
             if header[0] == version and len(netbuffer) == header[1] + 6:
                 opcode = header[2]
