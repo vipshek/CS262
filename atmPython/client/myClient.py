@@ -14,7 +14,7 @@ success_handlers = {
     "getBalance": balance_success,
     "deposit": deposit_success,
     "withdraw": withdraw_success,
-    "closeAccount": delete_success
+    "closeAccount": delete_success,
     "endSession": end_session_success
 }
 
@@ -86,22 +86,18 @@ def getResponse(mySocket):
                     if not msg_obj['success']:
                         print "ERROR: " + msg_obj['message']
                     else:
-                        success_handlers[msg_obj['operation']](msg_obj['data'])
+                        try:
+                            success_handlers[msg_obj['operation']](mySocket, msg_obj['data'])
+                        except KeyError:
+                            print "ERROR: operation not recognized."
+                            continue
                 except:
                     print "ERROR: unable to read message"
-                    continue
-
-                #send packet to correct handler
-                try:
-                    opcodes[opcode](mySocket,retBuffer)
-                except KeyError:
-                    print "ERROR: cannot understand operation"
                     continue
             else:
                 print "ERROR: wrong protocol version."
                 continue
-    
-    return
+        return
     
 if __name__ == '__main__':
     if(len(sys.argv) != 3):

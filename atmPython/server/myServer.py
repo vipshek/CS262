@@ -14,13 +14,13 @@ from myServerSend import unknown_opcode
 import thread
 import json
 
-version = '\x01'
+version = 1
 #opcode associations
 opcodes = {'createAccount': myServerReceive.create_request, 
-           'getBalance': myServerReceive.delete_request,
+           'getBalance': myServerReceive.balance_request,
            'deposit': myServerReceive.deposit_request,
            'withdraw': myServerReceive.withdraw_request,
-           'closeAccount': myServerReceive.balance_request,
+           'closeAccount': myServerReceive.delete_request,
            'endSession': myServerReceive.end_session
            }
 HEADER_LENGTH = 12
@@ -48,9 +48,10 @@ def handler(conn,lock, myData):
             #only allow correct version numbers and buffers that are of the appropriate length
             if header[0] == version and len(netbuffer) == header[1] + HEADER_LENGTH:
                 json_data = json.loads(netbuffer[HEADER_LENGTH:])
+                print json_data
                 #try to send packet to correct handler
                 try:
-                    opcodes[json_data.opcode](conn,json_data,myData,lock)
+                    opcodes[json_data['operation']](conn,json_data,myData,lock)
                 #catch unhandled opcodes
                 except KeyError:
                     if(second_attempt):
@@ -72,7 +73,7 @@ if __name__ == '__main__':
 
     #setup socket
     mySocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    mySocket.bind(('',8080))
+    mySocket.bind(('',8079))
     mySocket.listen(5)  #param represents the number of queued connections
 
     #listening for connections

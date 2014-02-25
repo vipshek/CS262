@@ -5,6 +5,7 @@ Altered Feb 20, 2014
 '''
 
 from struct import pack
+import json
 
 VERSION = 1
 """
@@ -28,11 +29,7 @@ def general_failure(conn, type, reason):
     return
 
 def json_success(conn, operation, data):
-    json_data = {"operation": operation, "success": True}
-    # only include data key if data is passed in
-    if len(data) > 0:
-        json_data.extend({"data": data})
-
+    json_data = {"operation": operation, "success": True, "data": data}
     json_send(conn, json_data)
     return
 

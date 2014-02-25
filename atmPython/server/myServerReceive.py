@@ -9,7 +9,7 @@ import sys
 
 #create new account
 def create_request(conn,json_data,myData,lock):
-    balance, acct_number = json_data.arguments.balance, json_data.arguments.acct_number
+    balance, acct_number = json_data['arguments']['balance'], json_data['arguments']['acct_number']
     lock.acquire()
     try:
         if balance < 0:
@@ -41,7 +41,7 @@ def create_request(conn,json_data,myData,lock):
 
 #delete an existing account
 def delete_request(conn,json_data,myData,lock):
-    acct_number = json_data.arguments.acct_number
+    acct_number = json_data['arguments']['acct_number']
     lock.acquire()
     try:
         if acct_number < 0 or acct_number > 100:
@@ -60,7 +60,7 @@ def delete_request(conn,json_data,myData,lock):
 
 #deposit to an existing account
 def deposit_request(conn,json_data,myData,lock):
-    amount, acct_number = json_data.arguments.amount, json_data.arguments.acct_number
+    amount, acct_number = json_data['arguments']['amount'], json_data['arguments']['acct_number']
     lock.acquire()
     try:
         if amount < 0:
@@ -84,7 +84,7 @@ def deposit_request(conn,json_data,myData,lock):
 
 #withdraw from an existing account
 def withdraw_request(conn,json_data,myData,lock):
-    amount, acct_number = json_data.arguments.amount, json_data.arguments.acct_number
+    amount, acct_number = json_data['arguments']['amount'], json_data['arguments']['acct_number']
 
     lock.acquire()
     try:
@@ -107,7 +107,7 @@ def withdraw_request(conn,json_data,myData,lock):
 
 #withdraw from an existing account
 def balance_request(conn,json_data,myData,lock):
-    acct_number = json_data.arguments.acct_number
+    acct_number = json_data['arguments']['acct_number']
 
     if acct_number < 0 or acct_number > 100:
         general_failure(conn,'getBalance',"invalid account number")

@@ -116,7 +116,7 @@ def withdraw_request(conn):
             bal = netBuffer
             break
         
-    args = {"acct_number": act, "balance": bal}
+    args = {"acct_number": act, "amount": bal}
     prepare_send(conn, "withdraw", args)
     return
 
