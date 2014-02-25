@@ -6,59 +6,72 @@ Altered Feb 20, 2014
 
 from struct import pack
 
+VERSION = 1
+"""
+Send json data over the network
+"""
+def json_send(conn, data):
+    # encode data as json
+    json_str = json.dumps(data)
+    json_length = len(json_str)
+
+    # send
+    conn.send(pack('!IQ',VERSION,json_length) + json_str)
+
+    return
+
 def general_failure(conn, type, reason):
-    
-    #find the appropriate opcode to send for particular errors
-    if type == 'create':
-        typebyte = '\x12'
-    elif type == 'delete':
-        typebyte = '\x22'
-    elif type == 'deposit':
-        typebyte = '\x32'
-    elif type == 'withdraw':
-        typebyte = '\x42'
-    elif type == 'balance':
-        typebyte = '\x52'
-    
-    #encode and send the string
-    utf = reason.encode('utf-8')
-    utflen = len(utf)
-    conn.send('\x01' + pack('!I',2 + utflen) + typebyte + pack('!h',utflen) + utf)
+    #encode and send the data
+    data = {"operation": type, "success": False, "message": reason}
+
+    json_send(conn, data)
+    return
+
+def json_success(conn, operation, data):
+    json_data = {"operation": operation, "success": True}
+    # only include data key if data is passed in
+    if len(data) > 0:
+        json_data.extend({"data": data})
+
+    json_send(conn, json_data)
     return
 
 #create new account
 def create_success(conn,act):
-    conn.send('\x01' + pack('!I',4) +'\x11' + pack('!I',act))
+    json_success(conn, "createAccount", {"acct_number": act})
     return
 
 #delete an existing account
 def delete_success(conn):
-    conn.send('\x01\x00\x00\x00\x00\x21')
+    json_success(conn, "closeAccount", {})
     return
 
 #deposit to an existing account
 def deposit_success(conn,bal):
-    conn.send('\x01' + pack('!I',4) +'\x31' + pack('!I',bal))
+    json_success(conn, "deposit", {"balance": bal})
     return
 
 #withdraw from an existing account
 def withdraw_success(conn,bal):
-    conn.send('\x01' + pack('!I',4) +'\x41' + pack('!I',bal))
+    json_success(conn, "withdraw", {"balance": bal})
     return
 
 #withdraw from an existing account
 def balance_success(conn,bal):
-    conn.send('\x01' + pack('!I',4) +'\x51' + pack('!I',bal))
+    json_success(conn, "getBalance", {"balance": bal})
     return
 
 #end a session
 def end_session_success(conn):
-    conn.send('\x01\x00\x00\x00\x00\x61')
+    json_success(conn, "endSession", {})
     return
 
 #handle invalid opcodes
 def unknown_opcode(conn):
-    conn.send('\x01\x00\x00\x00\x00\x62')
+    #encode and send the data
+    data = {"operation": "unknown", "success": False, "message": "unknown opcode"}
+
+    json_send(conn, data)
     return
 
 
