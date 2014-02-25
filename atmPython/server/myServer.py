@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     #setup socket
     mySocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    mySocket.bind(('',8079))
+    mySocket.bind(('',8080))
     mySocket.listen(5)  #param represents the number of queued connections
 
     #listening for connections
