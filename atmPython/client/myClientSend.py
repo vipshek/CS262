@@ -4,12 +4,20 @@ Created on Feb 18, 2010
 altered on Feb. 20, 2014
 '''
 
+VERSION = 1
+
 from struct import pack
 from sys import maxint, exit
+import json
+
+def prepare_send(conn, operation, args):
+    json_str = json.dumps({"operation": operation, "arguments": args})
+    json_length = len(json_str)
+
+    send_message(pack('!IQ', VERSION,json_length) + json_str, conn)
 
 #create new account
 def create_request(conn):
-    
     print "CREATING AN ACCOUNT \n"
     print "enter a starting balance:"
     while True:
@@ -35,8 +43,8 @@ def create_request(conn):
             act = -1
             break
     
-    send_message('\x01' + pack('!I',8) + '\x10' + pack('!II',bal,act),conn)
-    
+    args = {"acct_number": act, "balance": bal}
+    prepare_send(conn, "createAccount", args)
     return
 
 #delete an existing account
@@ -53,7 +61,8 @@ def delete_request(conn):
             act = netBuffer
             break
     
-    send_message('\x01' + pack('!I',4) + '\x20' + pack('!I',act),conn)
+    args = {"acct_number": act}
+    prepare_send(conn, "closeAccount", args)
     return
 
 #deposit to an existing account
@@ -78,8 +87,9 @@ def deposit_request(conn):
         if(netBuffer >= 0 and netBuffer < maxint):
             bal = netBuffer
             break
-        
-    send_message('\x01' + pack('!I',8) + '\x30' + pack('!II',act,bal),conn)
+
+    args = {"acct_number": act, "amount": bal}
+    prepare_send(conn, "deposit", args)
     return
 
 #withdraw from an existing account
@@ -106,7 +116,8 @@ def withdraw_request(conn):
             bal = netBuffer
             break
         
-    send_message('\x01' + pack('!I',8) + '\x40' + pack('!II',act,bal),conn)
+    args = {"acct_number": act, "balance": bal}
+    prepare_send(conn, "withdraw", args)
     return
 
 #withdraw from an existing account
@@ -123,12 +134,14 @@ def balance_request(conn):
             act = netBuffer
             break
 
-    send_message('\x01' + pack('!I',4) + '\x50' + pack('!I',act),conn)
+    args = {"acct_number": act}
+    prepare_send(conn, "getBalance", args)
     return
 
 #end a session
 def end_session(conn):
-    send_message('\x01\x00\x00\x00\x00\x60',conn)
+    args = {}
+    prepare_send(conn, "endSession", args)
     return
 
 def send_message(message, conn):

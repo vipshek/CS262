@@ -1,31 +1,22 @@
 '''
-Created on Feb 18, 2010
-
-Altered Feb. 20, 2014
+Team 3
 '''
-
-version = '\x01'
 
 import socket
 from myClientSend import *
 from myClientReceive import *
 import sys
 from struct import unpack
+import json
 
-#opcode associations; note that these opcodes will be returned by the serverzl;khjapoiwpe
-opcodes = {'\x11': create_success,
-           '\x12': general_failure,  
-           '\x21': delete_success,
-           '\x22': general_failure,
-           '\x31': deposit_success,
-           '\x32': general_failure,
-           '\x41': withdraw_success,
-           '\x42': general_failure,
-           '\x51': balance_success,
-           '\x52': general_failure,
-           '\x61': end_session_success,
-           '\x62': unknown_opcode
-           }
+success_handlers = {
+    "createAccount": create_success,
+    "getBalance": balance_success,
+    "deposit": deposit_success,
+    "withdraw": withdraw_success,
+    "closeAccount": delete_success
+    "endSession": end_session_success
+}
 
 def getInput():
     print '''
@@ -44,11 +35,11 @@ def processInput(netBuffer, mySocket):
     #create
     if netBuffer == str(1):
         create_request(mySocket)
-        
+
     #delete
     elif netBuffer == str(2):
         delete_request(mySocket)
-        
+
     #deposit
     elif netBuffer == str(3):
         deposit_request(mySocket)
@@ -71,26 +62,46 @@ def getResponse(mySocket):
     #wait for server responses...
     while True:
         try:
-            retBuffer = mySocket.recv( 1024 )
+            retBuffer = mySocket.recv( 4096 )
         except:
             #close the client if the connection is down
             print "ERROR: connection down"
             sys.exit()
             
-        if len(retBuffer) != 0:
-            
-            header = unpack('!cIc',retBuffer[0:6])
+        if len(retBuffer) > 12:
+            header = unpack('!IQ',retBuffer[0:12])
             #only allow correct version numbers
-            if header[0] == version:
-                opcode = header[2]
+            if header[0] == VERSION:
+                length = header[1]
+                msg = retBuffer[12:]
+
+                #check that we have the entire message
+                if (len(msg) != length):
+                    print "ERROR: did not receive entire message"
+                    continue
+
+                try:
+                    msg_obj = json.loads(msg)
+                    
+                    if not msg_obj['success']:
+                        print "ERROR: " + msg_obj['message']
+                    else:
+                        success_handlers[msg_obj['operation']](msg_obj['data'])
+                except:
+                    print "ERROR: unable to read message"
+                    continue
+
                 #send packet to correct handler
                 try:
                     opcodes[opcode](mySocket,retBuffer)
                 except KeyError:
-                    break
-            #mySocket.send ('\x01\x01\x02\x03\x53\x10\x12\x34')
-            break
-        return
+                    print "ERROR: cannot understand operation"
+                    continue
+            else:
+                print "ERROR: wrong protocol version."
+                continue
+    
+    return
     
 if __name__ == '__main__':
     if(len(sys.argv) != 3):
