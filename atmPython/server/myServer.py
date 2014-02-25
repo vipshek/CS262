@@ -12,16 +12,18 @@ import myServerReceive
 import myServerSend
 from myServerSend import unknown_opcode
 import thread
+import json
 
 version = '\x01'
 #opcode associations
-opcodes = {'\x10': myServerReceive.create_request, 
-           '\x20': myServerReceive.delete_request,
-           '\x30': myServerReceive.deposit_request,
-           '\x40': myServerReceive.withdraw_request,
-           '\x50': myServerReceive.balance_request,
-           '\x60': myServerReceive.end_session
+opcodes = {'createAccount': myServerReceive.create_request, 
+           'getBalance': myServerReceive.delete_request,
+           'deposit': myServerReceive.deposit_request,
+           'withdraw': myServerReceive.withdraw_request,
+           'closeAccount': myServerReceive.balance_request,
+           'endSession': myServerReceive.end_session
            }
+HEADER_LENGTH = 12
 
 def recordConnect(log, addr):
     print 'Opened connection with ' + addr
@@ -35,20 +37,20 @@ def handler(conn,lock, myData):
     while True:   
         #retrieve header
         try:
-            netbuffer = conn.recv( 1024 )
+            netbuffer = conn.recv( 4096 )
         except:
             #close the thread if the connection is down
             thread.exit()
         #if we receive a message...
-        if len(netbuffer) >= 6:
+        if len(netbuffer) >= HEADER_LENGTH:
             #unpack it...
-            header = struct.unpack('!cIc',netbuffer[0:6])
+            header = struct.unpack('!IQ',netbuffer[0:HEADER_LENGTH])
             #only allow correct version numbers and buffers that are of the appropriate length
-            if header[0] == version and len(netbuffer) == header[1] + 6:
-                opcode = header[2]
+            if header[0] == version and len(netbuffer) == header[1] + HEADER_LENGTH:
+                json_data = json.loads(netbuffer[HEADER_LENGTH:])
                 #try to send packet to correct handler
                 try:
-                    opcodes[opcode](conn,netbuffer,myData,lock)
+                    opcodes[json_data.opcode](conn,json_data,myData,lock)
                 #catch unhandled opcodes
                 except KeyError:
                     if(second_attempt):

@@ -8,26 +8,21 @@ from struct import unpack
 import sys
 
 #create new account
-def create_request(conn,netBuffer,myData,lock):
-    
-    values = unpack('!II',netBuffer[6:14])
-    
+def create_request(conn,json_data,myData,lock):
+    balance, acct_number = json_data.arguments.balance, json_data.arguments.acct_number
     lock.acquire()
     try:
-        #get balance
-        if(values[0] >= 0 and values[0] < sys.maxint):
-            bal = values[0]
+        if balance < 0:
+            general_failure(conn, 'createAccount', "invalid balance")
+        elif acct_number < 0 or acct_number > 100:
+            general_failure(conn, 'createAccount', "invalid account number")
+        elif acct_number in myData:
+            general_failure(conn, 'createAccount', "account already in use")
         else:
-            general_failure(conn, 'create', "invalid balance")
-            return
-        
-        #get account number
-        if values[1] > 0 and values[1] <= 100:
-            act = values[1]
-            if act in myData:
-                general_failure(conn, 'create',"account already in use")
-                return
-            
+            myData[acct_number] = balance
+            create_success(conn,acct_number)
+
+        """
         #generate a value if it was -1
         elif values[1] == -1:
             i = 1
@@ -37,12 +32,7 @@ def create_request(conn,netBuffer,myData,lock):
                     general_failure(conn, 'create',"no remaining accounts")
                     return
             act = i
-        else:
-            general_failure(conn, 'create',"invalid account number")
-            return
-            
-        myData[act] = bal
-        create_success(conn,act)
+        """
     finally:
         lock.release()
         print myData
@@ -50,67 +40,41 @@ def create_request(conn,netBuffer,myData,lock):
     return
 
 #delete an existing account
-def delete_request(conn,netBuffer,myData,lock):
-    values = unpack('!I',netBuffer[6:10])
-    
+def delete_request(conn,json_data,myData,lock):
+    acct_number = json_data.arguments.acct_number
     lock.acquire()
     try:
-        #get balance
-        if(values[0] >= 0 and values[0] <= 100):
-            act = values[0]
+        if acct_number < 0 or acct_number > 100:
+            general_failure(conn, 'closeAccount',"invalid account number")
+        elif acct_number not in myData:
+            general_failure(conn, 'closeAccount',"nonexistent account number")
+        elif myData[acct_number] != 0:
+            general_failure(conn, 'closeAccount',"nonzero money in that account")
         else:
-            general_failure(conn,'delete',"invalid account number")
-            return
-        
-        if act not in myData:
-            general_failure(conn,'delete',"nonexistent account number")
-            return
-            
-        if myData[act] != 0:
-            general_failure(conn,'delete',"nonzero money in that account")
-            return
-
-        del myData[act]
-        delete_success(conn)
+            del myData[acct_number]
+            delete_success(conn)
     finally:
         lock.release()
         print myData
-    
     return
 
 #deposit to an existing account
-def deposit_request(conn,netBuffer,myData,lock):
-    values = unpack('!II',netBuffer[6:14])
+def deposit_request(conn,json_data,myData,lock):
+    amount, acct_number = json_data.arguments.amount, json_data.arguments.acct_number
     lock.acquire()
     try:
-        #get account number
-        if(values[0] >= 0 and values[0] <= 100):
-            act = values[0]
+        if amount < 0:
+            general_failure(conn, 'deposit', "invalid deposit amount")
+        elif acct_number < 0 or acct_number > 100:
+            general_failure(conn, 'deposit', "invalid account number")
+        elif acct_number not in myData:
+            general_failure(conn, 'deposit', "nonexistent account number")
         else:
-            general_failure(conn,'deposit',"invalid account number")
-            return
-        
-        #check for existence of account
-        if act not in myData:
-            general_failure(conn,'deposit',"nonexistent account number")
-            return
-        
-        #check for a valid deposit amount
-        if values[1] > 0:
-            bal = values[1]
-        else:
-            general_failure(conn,'deposit',"nonsense deposit amount")
-            return
-            
-        curr_bal = myData[act]
-        
-        #check that the new balance won't overflow
-        if bal < sys.maxint - curr_bal - 1:
-            myData[act] = curr_bal + bal
-        else:
-            general_failure(conn,'deposit',"account overflow... damn you are rich")
-            return
-        deposit_success(conn, curr_bal + bal)
+            if amount < sys.maxint - myData[acct_number] - 1:
+                myData[acct_number] += amount
+                deposit_success(conn, myData[acct_number])
+            else:
+                general_failure(conn,'deposit',"account overflow... damn you are rich")
     finally:
         lock.release()
         print myData
@@ -119,71 +83,48 @@ def deposit_request(conn,netBuffer,myData,lock):
     return
 
 #withdraw from an existing account
-def withdraw_request(conn,netBuffer,myData,lock):
-    values = unpack('!II',netBuffer[6:14])
+def withdraw_request(conn,json_data,myData,lock):
+    amount, acct_number = json_data.arguments.amount, json_data.arguments.acct_number
+
     lock.acquire()
     try:
-        #get account number
-        if(values[0] >= 0 and values[0] <= 100):
-            act = values[0]
+        if amount < 0:
+            general_failure(conn, 'withdraw', "invalid withdrawal amount")
+        elif acct_number < 0 or acct_number > 100:
+            general_failure(conn, 'withdraw', "invalid account number")
+        elif acct_number not in myData:
+            general_failure(conn, 'withdraw', "nonexistent account number")
         else:
-            general_failure(conn,'withdraw',"invalid account number")
-            return
-        
-        #check for existence of account
-        if act not in myData:
-            general_failure(conn,'withdraw',"nonexistent account number")
-            return
-        
-        #check for a valid deposit amount
-        if values[1] > 0:
-            bal = values[1]
-        else:
-            general_failure(conn,'withdraw',"nonsense withdrawal amount")
-            return
-            
-        curr_bal = myData[act]
-        
-        #check that the new balance won't overflow
-        if curr_bal - bal >= 0:
-            myData[act] = curr_bal - bal
-        else:
-            general_failure(conn,'withdraw',"not enough money in account")
-            return
-        withdraw_success(conn, curr_bal - bal)
+            if myData[acct_number] - amount >= 0:
+                myData[acct_number] -= amount
+                withdraw_success(conn, myData[acct_number])
+            else:
+                general_failure(conn,'withdraw',"not enough money in account")
     finally:
         lock.release()
         print myData 
     return
 
 #withdraw from an existing account
-def balance_request(conn,netBuffer,myData,lock):
-    #no need to lock: we are just reading a value from a dict, which is thread-safe
-    values = unpack('!I',netBuffer[6:10])
+def balance_request(conn,json_data,myData,lock):
+    acct_number = json_data.arguments.acct_number
 
-    #get balance
-    if(values[0] >= 0 and values[0] <= 100):
-        act = values[0]
-    else:
-        general_failure(conn,'balance',"invalid account number")
-        return
-    
+    if acct_number < 0 or acct_number > 100:
+        general_failure(conn,'getBalance',"invalid account number")
+
+    #no need to lock: we are just reading a value from a dict, which is thread-safe
     #get the current balance
     try:
-        bal = myData[act]
+        balance = myData[acct_number]
     except KeyError:
-        general_failure(conn,'balance',"nonexistent account")
+        general_failure(conn,'getBalance',"nonexistent account")
         return
 
-    balance_success(conn,bal)
-    
+    balance_success(conn,balance)
     return
 
 #end a session
-def end_session(conn,netBuffer,myData,lock):
+def end_session(conn,json_data,myData,lock):
     end_session_success(conn)
     conn.close()
     return
-
-
-
