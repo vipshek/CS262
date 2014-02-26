@@ -48,7 +48,6 @@ def handler(conn,lock, myData):
             #only allow correct version numbers and buffers that are of the appropriate length
             if header[0] == version and len(netbuffer) == header[1] + HEADER_LENGTH:
                 json_data = json.loads(netbuffer[HEADER_LENGTH:])
-                print json_data
                 #try to send packet to correct handler
                 try:
                     opcodes[json_data['operation']](conn,json_data,myData,lock)

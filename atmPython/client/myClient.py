@@ -82,18 +82,18 @@ def getResponse(mySocket):
 
                 try:
                     msg_obj = json.loads(msg)
-                    
-                    if not msg_obj['success']:
-                        print "ERROR: " + msg_obj['message']
-                    else:
-                        try:
-                            success_handlers[msg_obj['operation']](mySocket, msg_obj['data'])
-                        except KeyError:
-                            print "ERROR: operation not recognized."
-                            continue
                 except:
                     print "ERROR: unable to read message"
-                    continue
+                    continue    
+
+                if not msg_obj['success']:
+                    print "ERROR: " + msg_obj['message']
+                else:
+                    try:
+                        success_handlers[msg_obj['operation']](mySocket, msg_obj['data'])
+                    except KeyError:
+                        print "ERROR: operation not recognized."
+                        continue
             else:
                 print "ERROR: wrong protocol version."
                 continue

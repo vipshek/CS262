@@ -8,7 +8,7 @@ from sys import exit
 
 #create new account
 def create_success(conn, data):
-    print "Account creation successful " + str(data['acct_number'])
+    print "Account creation successful. Account number is " + str(data['acct_number'])
     return
 
 #delete an existing account
