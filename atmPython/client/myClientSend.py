@@ -29,7 +29,7 @@ def create_request(conn):
             bal = netBuffer
             break
         
-    print "enter a an account number 1-100(input 0 for a random number):"
+    print "enter a an account number 1-100:"
     while True:
         try:
             netBuffer = int(raw_input('>> '))
